@@ -38,11 +38,12 @@ func main() {
 	}
 
 	fmt.Println("Connecting Rabbitmq........")
-	rabbitConn, err := rabbitmq.Connect(cfg.RabbitMQUrl)
+	client, err := rabbitmq.NewRabbitMQClient(cfg.RabbitMQUrl)
 	if err != nil {
 		panic(err)
 	}
-	defer rabbitConn.Close()
+
+	defer client.Close()
 
 	fmt.Println("Connected Rabbitmq........")
 }
