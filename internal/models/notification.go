@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Channel string
 
@@ -35,4 +38,14 @@ type NotificationRequest struct {
 	Template   string                 `json:"template"`
 	Locale     Locale                 `json:"locale"`
 	Data       map[string]interface{} `json:"data,omitempty"`
+}
+
+func (n *NotificationRequest) Validate() error {
+	if n.ID == "" {
+		return errors.New("missing notification id")
+	}
+	if n.Channel != ChannelEmail && n.Channel != ChannelSMS && n.Channel != ChannelPush {
+		return errors.New("invalid or unsupported channel")
+	}
+	return nil
 }
