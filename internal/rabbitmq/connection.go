@@ -134,33 +134,34 @@ func (c *RabbitMQClient) setUpTopology() error {
 	}
 
 	queueArgs := amqp.Table{
+		"x-max-priority" : 5,
 		"x-dead-letter-exchange":    DlxExchange,
 		"x-dead-letter-routing-key": DlxRoutingKey,
 	}
 
 	// Security Queues
-	if _, err := c.channel.QueueDeclare(SecurityEmailQueue, true, false, false, false, nil); err != nil {
+	if _, err := c.channel.QueueDeclare(SecurityEmailQueue, true, false, false, false, queueArgs); err != nil {
 		return err
 	}
 
-	if _, err := c.channel.QueueDeclare(SecuritySmsQueue, true, false, false, false, nil); err != nil {
+	if _, err := c.channel.QueueDeclare(SecuritySmsQueue, true, false, false, false, queueArgs); err != nil {
 		return err
 	}
 
-	if _, err := c.channel.QueueDeclare(SecurityFCMQueue, true, false, false, false, nil); err != nil {
+	if _, err := c.channel.QueueDeclare(SecurityFCMQueue, true, false, false, false, queueArgs); err != nil {
 		return err
 	}
 
 	// Security Queue Bindings
-	if err := c.channel.QueueBind(SecurityEmailQueue, "security.*.email", MainExchange, false, queueArgs); err != nil {
+	if err := c.channel.QueueBind(SecurityEmailQueue, "security.*.email", MainExchange, false, nil); err != nil {
 		return err
 	}
 
-	if err := c.channel.QueueBind(SecuritySmsQueue, "security.*.sms", MainExchange, false, queueArgs); err != nil {
+	if err := c.channel.QueueBind(SecuritySmsQueue, "security.*.sms", MainExchange, false, nil); err != nil {
 		return err
 	}
 
-	if err := c.channel.QueueBind(SecurityFCMQueue, "security.*.fcm", MainExchange, false, queueArgs); err != nil {
+	if err := c.channel.QueueBind(SecurityFCMQueue, "security.*.fcm", MainExchange, false, nil); err != nil {
 		return err
 	}
 
