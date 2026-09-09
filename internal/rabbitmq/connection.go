@@ -28,6 +28,11 @@ const (
 	UserSmsQueue   = "q.user.sms"
 	UserFCMQueue   = "q.user.fcm"
 
+	// Retry Queues
+	RetryEmailQueue = "q.retry.email"
+	RetrySmsQueue   = "q.retry.sms"
+	RetryFCMQueue   = "q.retry.fcm"
+
 	// Dead Letter Queue
 	DlqQueue      = "notification.dlx.queue"
 	DlxRoutingKey = "notification.dlx.routing.key"
@@ -129,33 +134,34 @@ func (c *RabbitMQClient) setUpTopology() error {
 	}
 
 	queueArgs := amqp.Table{
+		"x-max-priority" : 5,
 		"x-dead-letter-exchange":    DlxExchange,
 		"x-dead-letter-routing-key": DlxRoutingKey,
 	}
 
 	// Security Queues
-	if _, err := c.channel.QueueDeclare(SecurityEmailQueue, true, false, false, false, nil); err != nil {
+	if _, err := c.channel.QueueDeclare(SecurityEmailQueue, true, false, false, false, queueArgs); err != nil {
 		return err
 	}
 
-	if _, err := c.channel.QueueDeclare(SecuritySmsQueue, true, false, false, false, nil); err != nil {
+	if _, err := c.channel.QueueDeclare(SecuritySmsQueue, true, false, false, false, queueArgs); err != nil {
 		return err
 	}
 
-	if _, err := c.channel.QueueDeclare(SecurityFCMQueue, true, false, false, false, nil); err != nil {
+	if _, err := c.channel.QueueDeclare(SecurityFCMQueue, true, false, false, false, queueArgs); err != nil {
 		return err
 	}
 
 	// Security Queue Bindings
-	if err := c.channel.QueueBind(SecurityEmailQueue, "security.*.email", MainExchange, false, queueArgs); err != nil {
+	if err := c.channel.QueueBind(SecurityEmailQueue, "security.*.email", MainExchange, false, nil); err != nil {
 		return err
 	}
 
-	if err := c.channel.QueueBind(SecuritySmsQueue, "security.*.sms", MainExchange, false, queueArgs); err != nil {
+	if err := c.channel.QueueBind(SecuritySmsQueue, "security.*.sms", MainExchange, false, nil); err != nil {
 		return err
 	}
 
-	if err := c.channel.QueueBind(SecurityFCMQueue, "security.*.fcm", MainExchange, false, queueArgs); err != nil {
+	if err := c.channel.QueueBind(SecurityFCMQueue, "security.*.fcm", MainExchange, false, nil); err != nil {
 		return err
 	}
 
@@ -202,6 +208,33 @@ func (c *RabbitMQClient) setUpTopology() error {
 		return err
 	}
 	if err := c.channel.QueueBind(UserFCMQueue, "user.*.fcm", MainExchange, false, nil); err != nil {
+		return err
+	}
+
+
+	// Retry Queues & Bindings
+	retryArgs := amqp.Table {
+		"x-message-ttl" : int32(30_000),
+		"x-dead-letter-exchange": MainExchange,
+	}
+
+	if _, err := c.channel.QueueDeclare(RetryEmailQueue, true, false, false, false, retryArgs); err != nil {
+		return err
+	}
+	if _, err := c.channel.QueueDeclare(RetrySmsQueue, true, false, false, false, retryArgs); err != nil {
+		return err
+	}
+	if _, err := c.channel.QueueDeclare(RetryFCMQueue, true, false, false, false, retryArgs); err != nil {
+		return err
+	}
+
+	if err := c.channel.QueueBind(RetryEmailQueue, "retry.*.email", MainExchange, false, nil); err != nil {
+		return err
+	}
+	if err := c.channel.QueueBind(RetrySmsQueue, "retry.*.sms", MainExchange, false, nil); err != nil {
+		return err
+	}
+	if err := c.channel.QueueBind(RetryFCMQueue, "retry.*.fcm", MainExchange, false, nil); err != nil {
 		return err
 	}
 

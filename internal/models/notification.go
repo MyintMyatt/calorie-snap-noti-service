@@ -47,5 +47,9 @@ func (n *NotificationRequest) Validate() error {
 	if n.Channel != ChannelEmail && n.Channel != ChannelSMS && n.Channel != ChannelPush {
 		return errors.New("invalid or unsupported channel")
 	}
+
+	if n.Priority == 0 {
+		n.Priority = NormalPriority
+	}
 	return nil
 }

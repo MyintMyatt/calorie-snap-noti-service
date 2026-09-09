@@ -100,14 +100,15 @@ func (cm *ConsumerManager) startWorkerPool(ctx context.Context, cfg ConsumerConf
 		return err
 	}
 
-	jobs := make(chan amqp.Delivery, prefetch)
+	// jobs := make(chan amqp.Delivery, prefetch)
 	var wg sync.WaitGroup
 	
 	for i := 0; i < cfg.Workers; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			cm.worker(ctx, workerID, jobs, cfg.ChannelType, cfg.Queue)
+			// cm.worker(ctx, workerID, jobs, cfg.ChannelType, cfg.Queue)
+			cm.worker(ctx, workerID, deliveries, cfg.ChannelType, cfg.Queue)
 		}(i)
 	}
 
@@ -118,46 +119,68 @@ func (cm *ConsumerManager) startWorkerPool(ctx context.Context, cfg ConsumerConf
 	)
 
 	// dispatcher
-	go func() {
-		defer close(jobs)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case d, ok := <-deliveries:
-				if !ok {
-					return
-				}
-				select {
-				case jobs <- d:
-				case <-ctx.Done():
-					return
-				}
-			}
-		}
-	}()
+	// go func() {
+	// 	defer close(jobs)
+	// 	for {
+	// 		select {
+	// 		case <-ctx.Done():
+	// 			return
+	// 		case d, ok := <-deliveries:
+	// 			if !ok {
+	// 				return
+	// 			}
+	// 			select {
+	// 			case jobs <- d:
+	// 			case <-ctx.Done():
+	// 				return
+	// 			}
+	// 		}
+	// 	}
+	// }()
 
 	wg.Wait()
 	return nil
 
 }
 
-func (cm *ConsumerManager) worker(ctx context.Context, workerID int, jobs <-chan amqp.Delivery, channelType models.Channel, queueName string) {
+///
+/// consumer -> deliveries -> worker
+///
+func (cm *ConsumerManager) worker(ctx context.Context, workerID int, deliveries <-chan amqp.Delivery, channelType models.Channel, queueName string) {
 	for {
 		select {
 		case <-ctx.Done():
-			cm.log.Info("worker shutting down", "workerID", workerID)
 			return
-		case delivery, ok := <-jobs:
+		case delivery, ok := <-deliveries:
 			if !ok {
-				cm.log.Info("jobs channel closed, worker exiting", "workerID", workerID)
 				return
 			}
-
 			cm.processMessage(ctx, workerID, delivery, channelType, queueName)
 		}
 	}
-}	
+}
+
+///
+/// consumer -> deliveries -> job channel -> worker
+/// In this don't use go jobs channel because normal channel nature is FIFO so I can't control priority based re-queuing msg.
+/// worker with job channel
+///
+// func (cm *ConsumerManager) worker(ctx context.Context, workerID int, jobs <-chan amqp.Delivery, channelType models.Channel, queueName string) {
+// 	for {
+// 		select {
+// 		case <-ctx.Done():
+// 			cm.log.Info("worker shutting down", "workerID", workerID)
+// 			return
+// 		case delivery, ok := <-jobs:
+// 			if !ok {
+// 				cm.log.Info("jobs channel closed, worker exiting", "workerID", workerID)
+// 				return
+// 			}
+
+// 			cm.processMessage(ctx, workerID, delivery, channelType, queueName)
+// 		}
+// 	}
+// }	
 
 func (m *ConsumerManager) processMessage(
 	ctx context.Context,
@@ -297,11 +320,11 @@ func (m *ConsumerManager) publishToRetryQueue(
 func retryQueueName(ch models.Channel) string {
 	switch ch {
 	case models.ChannelEmail:
-		return "q.retry.email"
+		return RetryEmailQueue
 	case models.ChannelSMS:
-		return "q.retry.sms"
+		return RetrySmsQueue
 	case models.ChannelPush:
-		return "q.retry.fcm"
+		return RetryFCMQueue
 	default:
 		return ""
 	}
