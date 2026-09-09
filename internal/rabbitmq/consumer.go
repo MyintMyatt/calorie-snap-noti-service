@@ -297,11 +297,11 @@ func (m *ConsumerManager) publishToRetryQueue(
 func retryQueueName(ch models.Channel) string {
 	switch ch {
 	case models.ChannelEmail:
-		return "q.retry.email"
+		return RetryEmailQueue
 	case models.ChannelSMS:
-		return "q.retry.sms"
+		return RetrySmsQueue
 	case models.ChannelPush:
-		return "q.retry.fcm"
+		return RetryFCMQueue
 	default:
 		return ""
 	}
