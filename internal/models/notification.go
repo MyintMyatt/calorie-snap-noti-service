@@ -31,12 +31,12 @@ const (
 
 type NotificationRequest struct {
 	ID         string                 `json:"id"`
-	Channel    Channel                `json:"channel"` 
 	Recipient  string                 `json:"recipient"` // user id or email
 	Priority   NotificationPriority   `json:"priority"`
 	ClientTime time.Time              `json:"client_time"`
 	Template   string                 `json:"template"`
 	Locale     Locale                 `json:"locale"`
+	Subject    string				  `json:"subject"`
 	Data       map[string]interface{} `json:"data,omitempty"`
 }
 
@@ -44,8 +44,9 @@ func (n *NotificationRequest) Validate() error {
 	if n.ID == "" {
 		return errors.New("missing notification id")
 	}
-	if n.Channel != ChannelEmail && n.Channel != ChannelSMS && n.Channel != ChannelPush {
-		return errors.New("invalid or unsupported channel")
+
+	if n.Subject == "" {
+		return  errors.New("email subject can't be null")
 	}
 
 	if n.Priority == 0 {

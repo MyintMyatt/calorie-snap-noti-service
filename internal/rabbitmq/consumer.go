@@ -15,27 +15,45 @@ import (
 )
 
 const (
-	RetryHeader = "x-retry-count"
+	RetryHeader   = "x-retry-count"
 	OriginalQueue = "x-original-queue"
 )
 
 type ConsumerConfig struct {
-	Queue string
+	Queue       string
 	ChannelType models.Channel
-	Workers int
-	Prefetch int
+	Workers     int
+	Prefetch    int
 }
 
 type ConsumerManager struct {
-	client *RabbitMQClient
-	providers ports.ProviderRegistry
+	client     *RabbitMQClient
+	providers  ports.ProviderRegistry
 	maxRetries int
-	log *slog.Logger
+	log        *slog.Logger
 
-	mu sync.Mutex
-	cancel context.CancelFunc
+	mu      sync.Mutex
+	cancel  context.CancelFunc
 	running bool
-	wg sync.WaitGroup
+	wg      sync.WaitGroup
+}
+
+func (cm *ConsumerManager) Stop() {
+	cm.mu.Lock()
+
+	if !cm.running {
+		cm.mu.Unlock()
+		return
+	}
+
+	cm.running = false
+	cancel := cm.cancel
+	cm.cancel = nil
+	cm.mu.Unlock()
+
+	slog.Info("[-]:Stopping ConsumerManager...")
+	cancel()
+	slog.Info("[OK]:Stopeed ConsumerManger")
 }
 
 func NewConsumerManager(client *RabbitMQClient, providers ports.ProviderRegistry, maxRetries int, log *slog.Logger) *ConsumerManager {
@@ -44,10 +62,10 @@ func NewConsumerManager(client *RabbitMQClient, providers ports.ProviderRegistry
 	}
 
 	return &ConsumerManager{
-		client: client,
-		providers: providers,
+		client:     client,
+		providers:  providers,
 		maxRetries: maxRetries,
-		log: log,
+		log:        log,
 	}
 }
 
@@ -71,7 +89,7 @@ func (cm *ConsumerManager) Start(ctx context.Context, configs []ConsumerConfig) 
 			if err := cm.startWorkerPool(consumerCtx, cfg); err != nil {
 				cm.log.Error("failed to start worker pool", "queue", cfg.Queue, "error", err)
 			}
-		} ()
+		}()
 	}
 
 	cm.log.Info("ConsumerManager started", "queues", len(configs))
@@ -102,7 +120,7 @@ func (cm *ConsumerManager) startWorkerPool(ctx context.Context, cfg ConsumerConf
 
 	// jobs := make(chan amqp.Delivery, prefetch)
 	var wg sync.WaitGroup
-	
+
 	for i := 0; i < cfg.Workers; i++ {
 		wg.Add(1)
 		go func(workerID int) {
@@ -143,9 +161,9 @@ func (cm *ConsumerManager) startWorkerPool(ctx context.Context, cfg ConsumerConf
 
 }
 
-///
-/// consumer -> deliveries -> worker
-///
+// /
+// / consumer -> deliveries -> worker
+// /
 func (cm *ConsumerManager) worker(ctx context.Context, workerID int, deliveries <-chan amqp.Delivery, channelType models.Channel, queueName string) {
 	for {
 		select {
@@ -180,7 +198,7 @@ func (cm *ConsumerManager) worker(ctx context.Context, workerID int, deliveries 
 // 			cm.processMessage(ctx, workerID, delivery, channelType, queueName)
 // 		}
 // 	}
-// }	
+// }
 
 func (m *ConsumerManager) processMessage(
 	ctx context.Context,
