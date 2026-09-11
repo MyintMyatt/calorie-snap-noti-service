@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/MyintMyatt/notification-service/internal/metadata"
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	AppEnv string
-	RabbitMQUrl    string
+	AppEnv        string
+	RabbitMQUrl   string
+
+	MjMetaData    metadata.MailJetMetaData
 }
 
 func LoadConfig() (*Config, error) {
@@ -29,6 +32,12 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		AppEnv: os.Getenv("APP_ENV"),
 		RabbitMQUrl:    os.Getenv("RABBITMQ_URL"),
+		MjMetaData: metadata.MailJetMetaData{
+			MJApiKeyPublic: os.Getenv("MJ_APIKEY_PUBLIC"),
+			MJApiKeyPrivate: os.Getenv("MJ_APIKEY_PRIVATE"),
+			MJFromEmail: os.Getenv("MJ_FROM_EMAIL"),
+			MJFromName: os.Getenv("MJ_FROM_NAME"),
+		},
 	}
 
 	if cfg.RabbitMQUrl == "" {

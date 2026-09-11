@@ -36,12 +36,17 @@ type NotificationRequest struct {
 	ClientTime time.Time              `json:"client_time"`
 	Template   string                 `json:"template"`
 	Locale     Locale                 `json:"locale"`
+	Subject    string				  `json:"subject"`
 	Data       map[string]interface{} `json:"data,omitempty"`
 }
 
 func (n *NotificationRequest) Validate() error {
 	if n.ID == "" {
 		return errors.New("missing notification id")
+	}
+
+	if n.Subject == "" {
+		return  errors.New("email subject can't be null")
 	}
 
 	if n.Priority == 0 {

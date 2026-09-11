@@ -32,7 +32,7 @@ func main() {
 
 	fmt.Println("[OK]:Connected Rabbitmq.")
 
-	emailProvider := providers.NewEmailProvider()
+	emailProvider := providers.NewEmailProvider(cfg.MjMetaData.MJApiKeyPublic, cfg.MjMetaData.MJApiKeyPrivate, cfg.MjMetaData.MJFromEmail, cfg.MjMetaData.MJFromName)
 	fcmProvider := providers.NewFcmProvider()
 	smsProvder := providers.NewSmsProvider()
 
