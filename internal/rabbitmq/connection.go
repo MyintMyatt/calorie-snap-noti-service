@@ -135,6 +135,7 @@ func (c *RabbitMQClient) setUpTopology() error {
 
 	queueArgs := amqp.Table{
 		"x-max-priority" : 5,
+		
 		"x-dead-letter-exchange":    DlxExchange,
 		"x-dead-letter-routing-key": DlxRoutingKey,
 	}
